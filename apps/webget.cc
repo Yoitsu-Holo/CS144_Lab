@@ -1,8 +1,13 @@
-#include "socket.hh"
 #include "util.hh"
 
 #include <cstdlib>
 #include <iostream>
+
+// outer lib
+#include <address.hh>
+#include <socket.hh>
+
+//#define TEST
 
 using namespace std;
 
@@ -13,12 +18,42 @@ void get_URL(const string &host, const string &path) {
     // the computer whose name is in the "host" string,
     // then request the URL path given in the "path" string.
 
+    const Address userhost(host, "http");
+#ifdef TEST
+    // check IP
+    cout << userhost.ip() << endl;
+#endif
+    TCPSocket sock;
+    sock.connect(userhost);
+    string msg;
+    // GET **path** HTTP/1.1
+    // Host: **host**
+    // Connection: close
+    msg.append("GET ").append(path).append(" HTTP/1.1\r\n");
+    msg.append("Host: ").append(host).append("\r\n");
+    msg.append("Connection: close\r\n\r\n");
+
+#ifdef TEST
+    // check msg
+    cout << msg << endl;
+#endif
+
+    sock.write(msg);
+
+    while (1) {
+        auto recvd = sock.read();
+        if (recvd.size() == 0)
+            break;
+
+        cout << recvd;
+    }
+
     // Then you'll need to print out everything the server sends back,
     // (not just one call to read() -- everything) until you reach
     // the "eof" (end of file).
 
-    cerr << "Function called: get_URL(" << host << ", " << path << ").\n";
-    cerr << "Warning: get_URL() has not been implemented yet.\n";
+    // cerr << "Function called: get_URL(" << host << ", " << path << ").\n";
+    // cerr << "Warning: get_URL() has not been implemented yet.\n";
 }
 
 int main(int argc, char *argv[]) {
