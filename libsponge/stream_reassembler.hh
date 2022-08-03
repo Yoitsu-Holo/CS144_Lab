@@ -5,9 +5,11 @@
 
 #include <cstdint>
 #include <string>
-#include <queue>
-#include <utility>
+#include <limits.h>
 #include <iostream>
+#include <map>
+
+#define debug std::cerr
 
 //! \brief A class that assembles a series of excerpts from a byte stream (possibly out of order,
 //! possibly overlapping) into an in-order byte stream.
@@ -17,10 +19,10 @@ class StreamReassembler {
 
     ByteStream _output;  //&< The reassembled in-order byte stream
     size_t _capacity;    //&< The maximum number of bytes
-    typedef std::pair<size_t, std::string> prr;
-    std::priority_queue<prr, std::vector<prr>, std::greater<prr>> que;  //&< sort the stream
-    bool isEOF;
-    size_t posEOF;
+
+    std::map<size_t, char> unassembledBuffer;  //^ sort unassembled data buffer
+    std::string unreadBuffer;                  //^ unread buffer
+    size_t posEOF;                             //^ next read pos , EOF pos
 
   public:
     StreamReassembler(const size_t capacity);  //* \brief Construct a `StreamReassembler`

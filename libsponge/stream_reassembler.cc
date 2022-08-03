@@ -13,59 +13,67 @@ void DUMMY_CODE(Targs &&.../* unused */) {}
 using namespace std;
 
 StreamReassembler::StreamReassembler(const size_t capacity)
-    : _output(capacity), _capacity(capacity), que(), isEOF(false), posEOF(0) {}
+    : _output(capacity), _capacity(capacity), unassembledBuffer(), unreadBuffer(), posEOF(ULONG_LONG_MAX) {}
 
 //! \details This function accepts a substring (aka a segment) of bytes,
 //! possibly out-of-order, from the logical stream, and assembles any newly
 //! contiguous substrings and writes them into the output stream in order.
 void StreamReassembler::push_substring(const string &data, const size_t index, const bool eof) {
-    if (data.size() < 100)
-        std::cerr << "Information : "
-                  << "data: " << data << "; index: " << index << "; eof: " << eof << endl;
-    // DUMMY_CODE(data, index, eof);
-    que.push(make_pair(index, data));
-    if (eof)
-        isEOF = true;
-    prr tempprr;          // temp pair<index, string>
-    std::string orgstr;   // oranginal string
-    std::string tempstr;  // string buffer to use unordered_map
-    size_t idx;
+    // if (index < 1000 && data.size() < 20) {
+    //     for (auto &&c : data)
+    //         debug << int(c) << ",";
+    //     debug << data << " | " << index << " | " << eof << endl;
+    // }
+    size_t firstUnread = _output.bytes_written();
+    size_t firstUnassembled = _output.bytes_written() + unreadBuffer.size();
+
+    // calc the position of eof
     if (eof)
         posEOF = index + data.size();
-    while (!que.empty() && que.top().first <= _output.bytes_written()) {
-        if (!_output.remaining_capacity())
-            break;
 
-        tempprr = que.top();
-        que.pop();
+    // if substring is totally pushed, ignore it
+    if (index + data.size() < firstUnread)
+        return;
 
-        idx = tempprr.first;
-        orgstr = tempprr.second;
+    if (index > posEOF)
+        return;
 
-        if (idx + orgstr.size() < _output.bytes_written())
-            continue;
-
-        tempstr = orgstr.substr(_output.bytes_written() - idx);
-
-        _output.write(tempstr);
-
-        if (idx + orgstr.size() > _output.bytes_written()) {
-            que.push(tempprr);
+    // save unassembled data
+    if (index + data.size() >= firstUnassembled)
+        for (size_t i = 0, pos = index; i < data.size() && pos < posEOF; i++, pos++) {
+            if (pos >= firstUnassembled)
+                unassembledBuffer[pos] = data[i];
+            //! testpoint has bug??
+            else if (pos >= firstUnread)
+                unreadBuffer[unreadBuffer.size() - (firstUnassembled - pos)] = data[i];
         }
 
-        std::cerr  //<< "Function : " << orgstr << " :: " << tempstr << endl
-            << "  startpoint " << _output.bytes_written() << "; endpoint " << idx + orgstr.size() << endl;
-    }
-    // if (eof)
-    // if (que.empty() && isEOF) {
-    if (isEOF && posEOF <= _output.bytes_written()) {
-        std::cerr << "successfully" << endl;
-        _output.end_input();
+    // put assembled data to unread buffer
+    while (unassembledBuffer.find(firstUnassembled) != unassembledBuffer.end()) {
+        unreadBuffer.push_back(unassembledBuffer[firstUnassembled]);
+        unassembledBuffer.erase(unassembledBuffer.find(firstUnassembled));
+        firstUnassembled++;
     }
 
-    std::cerr << "Information : >>" << _output.bytes_written() << "  eof :" << _output.eof() << endl;
+    // put assembled data to _output buffer
+    // if (unreadBuffer.size() < 20) {
+    //     for (auto &&c : unreadBuffer)
+    //         debug << int(c) << ",";
+    //     debug << "bufed data: " << unreadBuffer << endl;
+    // }
+    int byteWritten = _output.write(unreadBuffer);
+    unreadBuffer = unreadBuffer.substr(byteWritten);
+
+    if (_output.bytes_written() == posEOF)
+        _output.end_input();
+
+    return;
 }
 
-size_t StreamReassembler::unassembled_bytes() const { return {_output.buffer_size()}; }
+size_t StreamReassembler::unassembled_bytes() const { return {unassembledBuffer.size()}; }
 
-bool StreamReassembler::empty() const { return {_output.buffer_empty()}; }
+bool StreamReassembler::empty() const {
+    if (unreadBuffer.size() + unassembledBuffer.size())
+        return false;
+    return true;
+}
