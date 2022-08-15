@@ -62,7 +62,9 @@ int main() {
             test.execute(ExpectState{TCPSenderStateSummary::SYN_SENT});
             test.execute(ExpectSegment{}.with_no_flags().with_syn(true).with_payload_size(0).with_seqno(isn));
             test.execute(AckReceived{WrappingInt32{isn + 2}}.with_win(1000));
+            cout << ">>>>> 3" << endl;
             test.execute(ExpectState{TCPSenderStateSummary::SYN_SENT});
+            cout << ">>>>> 4" << endl;
         }
 
         /* remove requirement to send corrective ACK for bad ACK
