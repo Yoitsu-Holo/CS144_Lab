@@ -1,0 +1,1 @@
+make clean && make -j8 && make check_lab4

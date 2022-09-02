@@ -7,7 +7,8 @@
 #include <string>
 #include <limits.h>
 #include <iostream>
-#include <map>
+//#include <map>
+#include <unordered_map>
 
 #define debug std::cerr
 
@@ -20,9 +21,8 @@ class StreamReassembler {
     ByteStream _output;  //&< The reassembled in-order byte stream
     size_t _capacity;    //&< The maximum number of bytes
 
-    std::map<size_t, char> unassembledBuffer;  //^ sort unassembled data buffer
-    std::string unreadBuffer;                  //^ unread buffer
-    size_t posEOF;                             //^ next read pos , EOF pos
+    std::unordered_map<size_t, char> unassembledBuffer{};  //^ sort unassembled data buffer
+    size_t posEOF{ULONG_LONG_MAX};                         //^ next read pos , EOF pos
 
   public:
     StreamReassembler(const size_t capacity);  //* \brief Construct a `StreamReassembler`
