@@ -12,7 +12,9 @@ void DUMMY_CODE(Targs &&.../* unused */) {}
 
 using namespace std;
 
-StreamReassembler::StreamReassembler(const size_t capacity) : _output(capacity), _capacity(capacity) {}
+StreamReassembler::StreamReassembler(const size_t capacity) : _output(capacity), _capacity(capacity) {
+    _unassembledBuffer.resize(capacity);
+}
 
 //! \details This function accepts a substring (aka a segment) of bytes,
 //! possibly out-of-order, from the logical stream, and assembles any newly
@@ -23,48 +25,61 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
 
     // calc the position of eof
     if (eof)
-        posEOF = index + data.size();
+        _posEOF = index + data.size();
 
     if (data.size()) {
-        size_t firstUnacceptable = min(firstUnread + _capacity, posEOF);
+        size_t firstUnacceptable = min(firstUnread + _capacity, _posEOF);
 
         // if substring is totally pushed Or over maximun capacity, ignore it
         if (index + data.size() < firstUnread || index >= firstUnacceptable)
             return;
 
-        if (index > posEOF)
+        if (index > _posEOF)
             return;
 
         // save unassembled data
         if (index + data.size() >= firstUnassembled) {
             size_t pos = (firstUnassembled > index) ? (firstUnassembled - index) : (0);
             for (size_t i = pos; i < data.size() && i + index < firstUnacceptable; i++) {
-                unassembledBuffer[i + index] = data[i];
+                if (!_unassembledBuffer[(i + index) % _capacity].first) {
+                    _unassembledBuffer[(i + index) % _capacity] = make_pair(true, data[i]);
+                    _unassembledBytes++;
+                }
             }
         }
 
         string buffer;
-        int outputCapacity = _output.remaining_capacity();
-        // put assembled data to unread buffer
-        while (unassembledBuffer.find(firstUnassembled) != unassembledBuffer.end() && (outputCapacity--)) {
-            buffer.push_back(unassembledBuffer[firstUnassembled]);
-            unassembledBuffer.erase(unassembledBuffer.find(firstUnassembled));
-            firstUnassembled++;
+        // size_t outputCapacity = _output.remaining_capacity();
+        //  put assembled data to unread buffer
+
+        for (size_t pos = firstUnassembled; pos < firstUnacceptable; pos++) {
+            size_t absolutePos = pos % _capacity;
+            if (_unassembledBuffer[absolutePos].first) {
+                buffer.push_back(_unassembledBuffer[absolutePos].second);
+                _unassembledBuffer[absolutePos].first = false;
+                _unassembledBytes--;
+            } else
+                break;
         }
+        // while (unassembledBuffer.find(firstUnassembled) != unassembledBuffer.end() && (outputCapacity--)) {
+        //     buffer.push_back(unassembledBuffer[firstUnassembled]);
+        //     unassembledBuffer.erase(unassembledBuffer.find(firstUnassembled));
+        //     firstUnassembled++;
+        // }
 
         _output.write(buffer);
     }
 
-    if (_output.bytes_written() == posEOF)
+    if (_output.bytes_written() == _posEOF)
         _output.end_input();
 
     return;
 }
 
-size_t StreamReassembler::unassembled_bytes() const { return {unassembledBuffer.size()}; }
+size_t StreamReassembler::unassembled_bytes() const { return {_unassembledBytes}; }
 
 bool StreamReassembler::empty() const {
-    if (_output.buffer_empty() && unassembledBuffer.empty())
+    if (_output.buffer_empty() && !_unassembledBytes)
         return true;
     return false;
 }
