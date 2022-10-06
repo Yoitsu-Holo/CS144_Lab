@@ -12,10 +12,11 @@
 class ByteStream {
   private:
     // Your code here -- add private members as necessary.
-    std::string buff;    // buffer
-    size_t front, back;  // two pointer, pointed buffer front and back
-    bool isInputEnd;
-    size_t totin, totout;
+    std::string _buff;           // buffer
+    size_t _front{0}, _back{0};  // two pointer, pointed buffer front and back
+    bool _isInputEnd{false};
+    size_t _totin{0}, _totout{0};
+    size_t _capacity, _realCapacity{0};
     //& Hint: This doesn't need to be a sophisticated data structure at
     //& all, but if any of your tests are taking longer than a second,
     //& that's a sign that you probably want to keep exploring

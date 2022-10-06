@@ -49,8 +49,6 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         }
 
         string buffer;
-        // size_t outputCapacity = _output.remaining_capacity();
-        //  put assembled data to unread buffer
 
         for (size_t pos = firstUnassembled; pos < firstUnacceptable; pos++) {
             size_t absolutePos = pos % _capacity;
@@ -61,11 +59,6 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
             } else
                 break;
         }
-        // while (unassembledBuffer.find(firstUnassembled) != unassembledBuffer.end() && (outputCapacity--)) {
-        //     buffer.push_back(unassembledBuffer[firstUnassembled]);
-        //     unassembledBuffer.erase(unassembledBuffer.find(firstUnassembled));
-        //     firstUnassembled++;
-        // }
 
         _output.write(buffer);
     }

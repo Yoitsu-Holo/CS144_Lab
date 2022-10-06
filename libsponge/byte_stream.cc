@@ -7,15 +7,12 @@
 
 // You will need to add private members to the class declaration in `byte_stream.hh`
 
-template <typename... Targs>
-void DUMMY_CODE(Targs &&.../* unused */) {}
-
 using namespace std;
 
-ByteStream::ByteStream(const size_t capacity) : buff(""), front(0), back(0), isInputEnd(false), totin(0), totout(0) {
+ByteStream::ByteStream(const size_t capacity) : _buff(""), _capacity(capacity) {
     // DUMMY_CODE(capacity);
-    buff.clear();
-    buff.resize(capacity + 1);
+    _realCapacity = _capacity + 1;
+    _buff.resize(_realCapacity);
     assert(capacity > 0);
 }
 
@@ -24,26 +21,26 @@ size_t ByteStream::write(const string &data) {
     size_t write = 0;
     for (auto &&c : data) {
         // if the next ptr of back is front, that buff is full
-        if (front == (back + 1) % buff.size())
+        if (_front == (_back + 1) % _realCapacity)
             break;
-        buff[back] = c;
+        _buff[_back] = c;
         write++;
-        totin++;
-        back = (back + 1) % buff.size();
+        _back = (_back + 1) % _realCapacity;
     }
+    _totin += write;
     return {write};
 }
 
 //! \param[in] len bytes will be copied from the output side of the buffer
 string ByteStream::peek_output(const size_t len) const {
-    // DUMMY_CODE(len);
     std::string outbuff;
-    size_t ptr = front;
+    outbuff.clear();
+    size_t ptr = _front;
     for (size_t i = 0; i < len; i++) {
-        if (ptr == back)
+        if (ptr == _back)
             break;
-        outbuff += buff[ptr];
-        ptr = (ptr + 1) % buff.size();
+        outbuff += _buff[ptr];
+        ptr = (ptr + 1) % _realCapacity;
     }
     return {outbuff};
 }
@@ -51,8 +48,8 @@ string ByteStream::peek_output(const size_t len) const {
 //! \param[in] len bytes will be removed from the output side of the buffer
 void ByteStream::pop_output(const size_t len) {
     // DUMMY_CODE(len);
-    front = (front + len) % buff.size();
-    totout += len;
+    _front = (_front + len) % _realCapacity;
+    _totout += len;
 }
 
 //! Read (i.e., copy and then pop) the next "len" bytes of the stream
@@ -60,23 +57,24 @@ void ByteStream::pop_output(const size_t len) {
 //! \returns a string
 std::string ByteStream::read(const size_t len) {
     // DUMMY_CODE(len);
-    std::string outbuff = this->peek_output(len);
+    std::string outbuff;
+    outbuff = this->peek_output(len);
     this->pop_output(outbuff.size());
     return {outbuff};
 }
 
-void ByteStream::end_input() { isInputEnd = true; }
+void ByteStream::end_input() { _isInputEnd = true; }
 
-bool ByteStream::input_ended() const { return {isInputEnd}; }
+bool ByteStream::input_ended() const { return {_isInputEnd}; }
 
-size_t ByteStream::buffer_size() const { return {(back + buff.size() - front) % buff.size()}; }
+size_t ByteStream::buffer_size() const { return {(_back + _realCapacity - _front) % _realCapacity}; }
 
-bool ByteStream::buffer_empty() const { return {front == back}; }
+bool ByteStream::buffer_empty() const { return {_front == _back}; }
 
-size_t ByteStream::remaining_capacity() const { return {buff.size() - this->buffer_size() - 1}; }
+size_t ByteStream::remaining_capacity() const { return {_realCapacity - this->buffer_size() - 1}; }
 
 bool ByteStream::eof() const { return (this->input_ended() && this->buffer_empty()); }
 
-size_t ByteStream::bytes_written() const { return {totin}; }
+size_t ByteStream::bytes_written() const { return {_totin}; }
 
-size_t ByteStream::bytes_read() const { return {totout}; }
+size_t ByteStream::bytes_read() const { return {_totout}; }
