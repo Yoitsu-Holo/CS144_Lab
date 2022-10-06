@@ -3,6 +3,8 @@
 
 #include <string>
 #include <assert.h>
+#include <deque>
+#include <iostream>
 
 //! \brief An in-order byte stream.
 
@@ -12,11 +14,11 @@
 class ByteStream {
   private:
     // Your code here -- add private members as necessary.
-    std::string _buff;           // buffer
-    size_t _front{0}, _back{0};  // two pointer, pointed buffer front and back
-    bool _isInputEnd{false};
+    std::deque<std::string> _buff{};  // buffer
+    size_t _buffSize{0};
     size_t _totin{0}, _totout{0};
-    size_t _capacity, _realCapacity{0};
+    size_t _capacity;
+    bool _isInputEnd{false};
     //& Hint: This doesn't need to be a sophisticated data structure at
     //& all, but if any of your tests are taking longer than a second,
     //& that's a sign that you probably want to keep exploring
