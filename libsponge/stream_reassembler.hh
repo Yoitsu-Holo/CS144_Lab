@@ -19,6 +19,7 @@ class StreamReassembler {
 
     ByteStream _output;  //&< The reassembled in-order byte stream
     size_t _capacity;    //&< The maximum number of bytes
+    size_t sizedebug{0};
 
     std::vector<std::pair<bool, char>> _unassembledBuffer{};  //^ sort unassembled data buffer
     size_t _posEOF{ULONG_LONG_MAX};                           //^ next read pos , EOF pos
