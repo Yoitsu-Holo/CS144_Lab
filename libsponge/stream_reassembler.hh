@@ -12,64 +12,14 @@
 
 #define debug std::cerr
 
-using namespace std;
-class StreamReassemblerBuffer {
-  private:
-    list<pair<size_t, string>> buffer{};
-
-  public:
-    StreamReassemblerBuffer() { buffer.push_back(make_pair(ULONG_LONG_MAX, "")); }
-
-    // index >= first Unreas..
-    size_t push_substring(const string &data, const uint64_t index) {
-        size_t appendBytes = 0;
-        size_t pos = index;
-        // not empty
-        for (auto it = buffer.begin(); it != buffer.end(); it++) {
-            if (pos >= index + data.size())
-                break;
-            if (index <= it->first) {
-                if (pos < index)
-                    pos = index;
-                if (it->first < pos)
-                    continue;
-                string temp = data.substr(pos - index, it->first - pos);
-                if (temp.size()) {
-                    appendBytes += temp.size();
-                    buffer.insert(it, make_pair(pos, temp));
-                    // it--;
-                }
-            }
-            pos = it->first + it->second.size();
-        }
-        return appendBytes;
-    }
-
-    string pop_substring(size_t firstUnassembled) {
-        string temp;
-        auto it = buffer.begin();
-        while (it->first < ULONG_LONG_MAX) {
-            auto itt = it;
-            it++;
-
-            if (itt->first == firstUnassembled) {
-                temp.append(itt->second);
-                firstUnassembled += itt->second.size();
-                buffer.erase(itt);
-            } else
-                break;
-        }
-        return temp;
-    }
-};
-
 //! \brief A class that assembles a series of excerpts from a byte stream (possibly out of order,
 //! possibly overlapping) into an in-order byte stream.
 class StreamReassembler {
   private:
     // Your code here -- add private members as necessary.
-    StreamReassemblerBuffer _unassembledBuffer{};
-    ByteStream _output;  //&< The reassembled in-order byte stream
+    std::list<std::pair<size_t, std::string>> _unassembledBuffer{};
+    // StreamReassemblerBuffer _unassembledBuffer{};
+    ByteStream _output;  //&< The maximum number of bytes
     size_t _capacity;    //&< The maximum number of bytes
     size_t sizedebug{0};
 
@@ -106,6 +56,9 @@ class StreamReassembler {
 
     bool empty() const;  //* \brief Is the internal state empty (other than the output stream)?
                          //* \returns `true` if no substrings are waiting to be assembled
+  private:
+    inline size_t push_unassembledString(const std::string &data, const uint64_t index);
+    inline std::string pop_unassembledString(size_t firstUnassembled);
 };
 
 #endif  // SPONGE_LIBSPONGE_STREAM_REASSEMBLER_HH

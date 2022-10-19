@@ -11,6 +11,7 @@ using namespace std;
 
 StreamReassembler::StreamReassembler(const size_t capacity) : _output(capacity), _capacity(capacity) {
     //_unassembledBuffer.resize(capacity);
+    _unassembledBuffer.push_back(make_pair(ULONG_LONG_MAX, ""));
 }
 
 //! \details This function accepts a substring (aka a segment) of bytes,
@@ -29,10 +30,12 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         // if substring is totally pushed Or over maximun capacity, ignore it
         if (index + data.size() < firstUnassembled || index >= firstUnacceptable || index > _posEOF)
             return;
-        size_t startPos = max(index, firstUnassembled);
-        string newString = data.substr(startPos - index, firstUnacceptable - startPos);
-        _unassembledBytes += _unassembledBuffer.push_substring(newString, startPos);
-        string temp = _unassembledBuffer.pop_substring(firstUnassembled);
+        const size_t startPos = max(index, firstUnassembled);
+        const string newString = data.substr(startPos - index, firstUnacceptable - startPos);
+
+        _unassembledBytes += push_unassembledString(newString, startPos);
+        string temp = pop_unassembledString(firstUnassembled);
+
         _unassembledBytes -= temp.size();
         _output.write(temp);
     }
@@ -47,4 +50,45 @@ bool StreamReassembler::empty() const {
     if (_output.buffer_empty() && !_unassembledBytes)
         return true;
     return false;
+}
+
+inline size_t StreamReassembler::push_unassembledString(const string &data, const uint64_t index) {
+    size_t appendBytes = 0;
+    size_t pos = index;
+    // not empty
+    for (auto it = _unassembledBuffer.begin(); it != _unassembledBuffer.end(); it++) {
+        if (pos >= index + data.size())
+            break;
+        if (index <= it->first) {
+            if (pos < index)
+                pos = index;
+            if (it->first < pos)
+                continue;
+            string temp = data.substr(pos - index, it->first - pos);
+            if (temp.size()) {
+                appendBytes += temp.size();
+                _unassembledBuffer.insert(it, make_pair(pos, temp));
+                // it--;
+            }
+        }
+        pos = it->first + it->second.size();
+    }
+    return appendBytes;
+}
+
+inline string StreamReassembler::pop_unassembledString(size_t firstUnassembled) {
+    string temp;
+    auto it = _unassembledBuffer.begin();
+    while (it->first < ULONG_LONG_MAX) {
+        auto itt = it;
+        it++;
+
+        if (itt->first == firstUnassembled) {
+            temp.append(itt->second);
+            firstUnassembled += itt->second.size();
+            _unassembledBuffer.erase(itt);
+        } else
+            break;
+    }
+    return temp;
 }

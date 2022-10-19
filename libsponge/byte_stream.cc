@@ -14,35 +14,21 @@ ByteStream::ByteStream(const size_t capacity) : _capacity(capacity) {}
 size_t ByteStream::write(const string &data) {
     size_t writeBytes = min(data.size(), remaining_capacity());
     _totin += writeBytes;
-    _buffSize += writeBytes;
-    _buff.push_back(data.substr(0, writeBytes));
+    _buff.append(data.substr(0, writeBytes));
     return writeBytes;
 }
 
 //! \param[in] len bytes will be copied from the output side of the buffer
 string ByteStream::peek_output(const size_t len) const {
-    size_t peekBytes = min(len, _buffSize);
-    std::string temp;
-    for (int i = 0; temp.length() < peekBytes; i++)
-        temp.append(_buff[i]);
-    return temp.substr(0, peekBytes);
+    size_t peekBytes = min(len, _buff.size());
+    return _buff.substr(0, peekBytes);
 }
 
 //! \param[in] len bytes will be removed from the output side of the buffer
 void ByteStream::pop_output(const size_t len) {
-    size_t lestBytes = min(len, _buffSize);
-    _totout += len;
-    _buffSize -= len;
-    while (lestBytes) {
-        std::string temp = _buff.front();
-        _buff.pop_front();
-        if (lestBytes >= temp.size())
-            lestBytes -= temp.size();
-        else {
-            _buff.push_front(temp.substr(lestBytes));
-            lestBytes = 0;
-        }
-    }
+    size_t popBytes = min(len, _buff.size());
+    _totout += popBytes;
+    _buff.assign(_buff.begin() + popBytes, _buff.end());
 }
 
 //! Read (i.e., copy and then pop) the next "len" bytes of the stream
@@ -59,11 +45,11 @@ void ByteStream::end_input() { _isInputEnd = true; }
 
 bool ByteStream::input_ended() const { return {_isInputEnd}; }
 
-size_t ByteStream::buffer_size() const { return {_buffSize}; }
+size_t ByteStream::buffer_size() const { return {_buff.size()}; }
 
 bool ByteStream::buffer_empty() const { return {_buff.empty()}; }
 
-size_t ByteStream::remaining_capacity() const { return {_capacity - _buffSize}; }
+size_t ByteStream::remaining_capacity() const { return {_capacity - _buff.size()}; }
 
 bool ByteStream::eof() const { return (this->input_ended() && this->buffer_empty()); }
 

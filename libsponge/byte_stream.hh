@@ -14,8 +14,7 @@
 class ByteStream {
   private:
     // Your code here -- add private members as necessary.
-    std::deque<std::string> _buff{};  // buffer
-    size_t _buffSize{0};
+    std::string _buff{};  // buffer
     size_t _totin{0}, _totout{0};
     size_t _capacity;
     bool _isInputEnd{false};
